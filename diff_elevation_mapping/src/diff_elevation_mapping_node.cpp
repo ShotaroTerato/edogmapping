@@ -19,6 +19,7 @@
 #include <pcl/PCLPointCloud2.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/filters/passthrough.h>
 
 #include <laser_geometry/laser_geometry.h>
 #include "sensor_msgs/point_cloud_conversion.h"
@@ -84,8 +85,15 @@ void DiffElevationMappingNode::processMapping(const sensor_msgs::PointCloud2Cons
 {
   sensor_msgs::PointCloud2 transformed_point_cloud;
   if(!(pcl_ros::transformPointCloud(global_frame_id_, *point_cloud, transformed_point_cloud, tf_))) return;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr raw_pcl_point_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::fromROSMsg(transformed_point_cloud, *raw_pcl_point_cloud);
+
+  pcl::PassThrough<pcl::PointXYZ> pass;
+  pass.setInputCloud (raw_pcl_point_cloud);
+  pass.setFilterFieldName ("z");
+  pass.setFilterLimits (0.0, 0.5);
   pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_point_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-  pcl::fromROSMsg(transformed_point_cloud, *pcl_point_cloud);
+  pass.filter (*pcl_point_cloud);
 
   // map_t *obs_map = map_alloc();
   // obs_map->size_x = map_->size_x;
@@ -162,7 +170,7 @@ bool DiffElevationMappingNode::savemapCallback(std_srvs::Empty::Request &request
         //   p_msg.intensity = p_msg.intensity / map_->cells[MAP_INDEX(map_, i, j)].diffs.size();
         // }
         pc_msg.push_back(p_msg);
-    } 
+    }
   }
   // pcl::io::savePCDFile("3f.pcd", pc_msg);
   // pcl::io::savePCDFile("gaisyuu_0901_1.pcd", pc_msg);
@@ -213,7 +221,7 @@ bool DiffElevationMappingNode::pubmapCallback(std_srvs::Empty::Request &request,
       for(int j=0;j<map_->size_y;j++) {
         if (!(MAP_VALID(map_, i, j))) continue;
         map_->cells[MAP_INDEX(map_, i, j)].diff=fmap->cells[MAP_INDEX(fmap, i, j)].diff;
-      } 
+      }
   }
 
   sensor_msgs::PointCloud map_cloud;
