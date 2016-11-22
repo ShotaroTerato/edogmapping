@@ -92,8 +92,13 @@ void DiffElevationMappingNode::processMapping(const sensor_msgs::PointCloud2Cons
   pass.setInputCloud (raw_pcl_point_cloud);
   pass.setFilterFieldName ("z");
   pass.setFilterLimits (0.0, 0.5);
+  pass.filter (*raw_pcl_point_cloud);
+
+  pcl::VoxelGrid<pcl::PointXYZ> vox;
+  vox.setInputCloud (raw_pcl_point_cloud);
+  vox.setLeafSize (0.05f, 0.05f, 0.05f);
   pcl::PointCloud<pcl::PointXYZ>::Ptr pcl_point_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-  pass.filter (*pcl_point_cloud);
+  vox.filter (*pcl_point_cloud);
 
   // map_t *obs_map = map_alloc();
   // obs_map->size_x = map_->size_x;
